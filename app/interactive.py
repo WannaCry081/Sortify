@@ -113,8 +113,8 @@ def run_interactive(default_root: Path) -> argparse.Namespace:
     print_section("Source & Destination")
     root = prompt_path("Start directory", default_root.resolve())
     dest_dir = prompt_text(
-        "Destination folder name (created inside the start directory)",
-        "sorted_by_extension",
+        "Destination folder ('.' keeps files beside their source root)",
+        ".",
     )
 
     print_section("Filters")

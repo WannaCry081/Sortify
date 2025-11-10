@@ -22,8 +22,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--dest-dir",
-        default="sorted_by_extension",
-        help="Name of the destination folder that will be created inside the root",
+        default=".",
+        help="Destination folder (relative or absolute). Use '.' to group files beside the source root.",
     )
     parser.add_argument(
         "--dry-run",

@@ -35,7 +35,7 @@ class SortConfig:
     """Container for sorter runtime options."""
 
     root: Path
-    dest_dir: Path | str = Path("sorted_by_extension")
+    dest_dir: Path | str = Path(".")
     include_dotfiles: bool = False
     include_code: bool = False
     dry_run: bool = False
@@ -65,16 +65,19 @@ def iter_files(
     dest_root = dest_root.resolve()
     code_extensions = code_extensions or DEFAULT_CODE_EXTENSIONS
 
+    dest_is_root = dest_root == root
+
     for dirpath, dirnames, filenames in os.walk(root):
         current_dir = Path(dirpath)
 
-        # Remove the destination directory from traversal to avoid recursion.
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if not is_relative_to_path((current_dir / d).resolve(), dest_root)
-            and (current_dir / d).resolve() != dest_root
-        ]
+        # Remove the destination directory from traversal to avoid recursion when needed.
+        if not dest_is_root:
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if not is_relative_to_path((current_dir / d).resolve(), dest_root)
+                and (current_dir / d).resolve() != dest_root
+            ]
 
         for name in filenames:
             path = current_dir / name
@@ -85,8 +88,13 @@ def iter_files(
             if path.parent.resolve() == root and path.name.lower() == "readme.md":
                 # Preserve the root README for repo documentation.
                 continue
-            if is_relative_to_path(path.resolve(), dest_root):
+            if not dest_is_root and is_relative_to_path(path.resolve(), dest_root):
                 continue
+            if dest_is_root:
+                ext = path.suffix.lower().lstrip(".") or "no_ext"
+                if path.parent.resolve() == (dest_root / ext).resolve():
+                    # Already resting inside its extension bucket.
+                    continue
             if path.is_file():
                 yield path
 
@@ -111,6 +119,10 @@ def move_file(src: Path, dest_root: Path, dry_run: bool = False) -> Path:
     ext = src.suffix.lower().lstrip(".") or "no_ext"
     dest_dir = dest_root / ext
     dest_dir.mkdir(parents=True, exist_ok=True)
+
+    if src.parent.resolve() == dest_dir.resolve():
+        print(f"Skipping (already grouped): {src}")
+        return src
 
     dest = safe_destination(dest_dir, src.name)
     if dry_run:
